@@ -3,6 +3,6 @@
 To try out:
 
 ```bash
-pip install fastapi-caching uvicorn 'databases[sqlite]'
+pip install 'fastapi-caching[.all]'
 uvicorn app1:app
 ```

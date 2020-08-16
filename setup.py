@@ -6,7 +6,10 @@ install_requires = ["fastapi", "cachetools"]
 
 extras_require = {
     "redis": ["aioredis"],
-    "examples": ["uvicorn==0.11.5"],  # Logging issues with newer versions
+    "examples": [
+        "uvicorn==0.11.5",  # Logging issues with newer versions
+        "databases[sqlite]",
+    ],
     "test": [
         "pytest>=5.4.0",
         "pytest-cov",
@@ -30,7 +33,7 @@ with open(os.path.join(this_directory, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="fastapi-caching",
-    version="0.1.1",
+    version="0.1.2",
     description="Cache library for FastAPI with tag based invalidation",
     url="https://github.com/jmagnusson/fastapi-caching",
     author="Jacob Magnusson",

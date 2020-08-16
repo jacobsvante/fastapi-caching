@@ -6,6 +6,6 @@ To try out:
 2. Execute:
 
 ```bash
-pip install fastapi-caching uvicorn 'databases[sqlite]'
+pip install 'fastapi-caching[.all]'
 uvicorn examples.redis_app:app
 ```

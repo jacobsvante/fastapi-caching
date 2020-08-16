@@ -25,3 +25,10 @@ pip install fastapi-caching[redis]
 ## Usage examples
 
 Examples on how to use [can be found here](/examples).
+
+
+## Changelog
+
+### v0.1.2, 2020-08-16
+
+- Feature: Support lazy initialization of caching backend

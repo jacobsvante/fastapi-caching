@@ -6,6 +6,7 @@ from fastapi import Depends
 from . import constants
 from .backends import CacheBackendBase
 from .dependencies import ResponseCacheDependency
+from .exceptions import NoBackendConfigured
 
 __all__ = ("CacheManager",)
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 class CacheManager:
     def __init__(
         self,
-        backend: CacheBackendBase,
+        backend: CacheBackendBase = None,
         *,
         ttl: int = constants.DEFAULT_TTL,
         no_cache_query_param: str = "no-cache",
@@ -24,8 +25,24 @@ class CacheManager:
         self._ttl = ttl
         self._no_cache_query_param = no_cache_query_param
 
+    def setup(
+        self,
+        backend: CacheBackendBase = None,
+        *,
+        ttl: int = None,
+        no_cache_query_param: str = None,
+    ):
+        if backend is not None:
+            self._backend = backend
+        if ttl is not None:
+            self._ttl = ttl
+        if no_cache_query_param is not None:
+            self._no_cache_query_param = no_cache_query_param
+
     @property
     def backend(self) -> CacheBackendBase:
+        if self._backend is None:
+            raise NoBackendConfigured()
         return self._backend
 
     def from_request(self, ttl: int = None) -> Depends:
