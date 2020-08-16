@@ -30,7 +30,12 @@ class ResponseCacheDependency:
             ttl=self._ttl,
         )
 
-        if "authorization" in request.headers:
+        if not self._backend.is_enabled():
+            logger.debug(
+                f"{cache.key}: Caching backend not enabled - returning no-op cache"
+            )
+            return NoOpResponseCache()
+        elif "authorization" in request.headers:
             logger.debug(
                 f"{cache.key}: Authorization header set - not fetching from cache"
             )

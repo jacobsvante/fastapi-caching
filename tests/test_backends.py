@@ -1,6 +1,6 @@
 import pytest
 
-from fastapi_caching import InMemoryBackend, RedisBackend
+from fastapi_caching import CachingNotEnabled, InMemoryBackend, RedisBackend
 
 from . import helpers
 
@@ -47,3 +47,21 @@ def test_that_redis_backend_can_be_configured_lazily():
 def test_that_inmemory_backend_can_be_configured_lazily():
     backend = InMemoryBackend()
     backend.setup(maxsize=2)
+
+
+@pytest.mark.asyncio
+async def test_that_exception_is_raised_for_disabled_backend():
+    cache_backend = InMemoryBackend()
+    cache_backend.disable()
+    with pytest.raises(CachingNotEnabled):
+        await cache_backend.set("a", "b")
+    with pytest.raises(CachingNotEnabled):
+        await cache_backend.get("a")
+    with pytest.raises(CachingNotEnabled):
+        await cache_backend.invalidate_tag("foo")
+    with pytest.raises(CachingNotEnabled):
+        await cache_backend.invalidate_tags(["foo", "bar"])
+    with pytest.raises(CachingNotEnabled):
+        await cache_backend.invalidate_tags(["foo", "bar"])
+    with pytest.raises(CachingNotEnabled):
+        await cache_backend.reset()

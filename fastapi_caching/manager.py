@@ -32,6 +32,15 @@ class CacheManager:
         if no_cache_query_param is not None:
             self._no_cache_query_param = no_cache_query_param
 
+    def enable(self):
+        self._backend.enable()
+
+    def disable(self):
+        self._backend.disable()
+
+    def is_enabled(self) -> bool:
+        self._backend.is_enabled()
+
     @property
     def backend(self) -> CacheBackendBase:
         return self._backend

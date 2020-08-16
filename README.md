@@ -1,6 +1,6 @@
 # FastAPI-Caching
 
-Cache library for FastAPI with tag based invalidation
+Cache library for FastAPI with tag based invalidation. Asynchronous only for the time being.
 
 ## Features
 
@@ -27,6 +27,10 @@ pip install fastapi-caching[redis]
 Examples on how to use [can be found here](/examples).
 
 
+## Limitations
+
+- Only supported within async contexts.
+
 ## Changelog
 
 ### v0.1.2, 2020-08-16
@@ -37,3 +41,7 @@ Examples on how to use [can be found here](/examples).
 
 - Breaking change: Revert to requiring `backend` to be passed to CacheManager
 - Feature: Support lazy configuration of the caching backend
+
+### v0.3.0, 2020-08-16
+
+- Feature: Add functionality to disable (and re-enable) caching.

@@ -5,6 +5,7 @@ from typing import Any, Optional, Sequence
 import cachetools
 
 from . import constants
+from .exceptions import CachingNotEnabled
 from .raw import RawCacheObject
 
 try:
@@ -23,8 +24,18 @@ class CacheBackendBase:
         """Configure backend lazily, may be needed in advanced use cases"""
         # NOTE: Default method is a no-op
 
+    def enable(self):
+        self._is_enabled = True
+
+    def disable(self):
+        self._is_enabled = False
+
+    def is_enabled(self) -> bool:
+        return getattr(self, "_is_enabled", True)
+
     async def get(self, key: str) -> Optional[RawCacheObject]:
-        raise NotImplementedError
+        self._ensure_enabled()
+        return await self._get_impl(key)
 
     async def set(
         self,
@@ -34,20 +45,27 @@ class CacheBackendBase:
         tags: Sequence[str] = (),
         ttl: int = None,
     ) -> bool:
+        self._ensure_enabled()
         if not isinstance(obj, RawCacheObject):
             obj = RawCacheObject(data=obj)
         return await self._set_impl(key, obj, tags=tags, ttl=ttl)
 
     async def invalidate_tag(self, tag: str):
         """Delete cache entries associated with the given tag"""
-        raise NotImplementedError
+        self._ensure_enabled()
+        return await self._invalidate_tag_impl(tag)
 
     async def invalidate_tags(self, tags: Sequence[str]):
         """Delete cache entries associated with the given tags"""
-        raise NotImplementedError
+        self._ensure_enabled()
+        return await self._invalidate_tags_impl(tags)
 
     async def reset(self):
         """Delete all stored cache related keys"""
+        self._ensure_enabled()
+        return await self._reset_impl()
+
+    async def _get_impl(self, key: str) -> Optional[RawCacheObject]:
         raise NotImplementedError
 
     async def _set_impl(
@@ -60,15 +78,28 @@ class CacheBackendBase:
     ) -> bool:
         raise NotImplementedError
 
+    async def _invalidate_tag_impl(self, tag: str):
+        raise NotImplementedError
+
+    async def _invalidate_tags_impl(self, tags: Sequence[str]):
+        raise NotImplementedError
+
+    async def _reset_impl(self):
+        raise NotImplementedError
+
     def _dumps(self, obj: Any) -> bytes:
         return pickle.dumps(obj)
 
     def _loads(self, raw: bytes) -> Any:
         return pickle.loads(raw)
 
+    def _ensure_enabled(self):
+        if not self.is_enabled():
+            raise CachingNotEnabled()
+
 
 class NoOpBackend(CacheBackendBase):
-    async def get(self, key: str) -> Optional[RawCacheObject]:
+    async def _get_impl(self, key: str) -> Optional[RawCacheObject]:
         return None
 
     async def _set_impl(
@@ -81,14 +112,14 @@ class NoOpBackend(CacheBackendBase):
     ) -> bool:
         return True
 
-    async def invalidate_tag(self, tag: str):
-        """Delete cache entries associated with the given tag"""
+    async def _invalidate_tag_impl(self, tag: str):
+        pass
 
-    async def invalidate_tags(self, tags: Sequence[str]):
-        """Delete cache entries associated with the given tags"""
+    async def _invalidate_tags_impl(self, tags: Sequence[str]):
+        pass
 
-    async def reset(self):
-        """Delete all stored cache related keys"""
+    async def _reset_impl(self):
+        pass
 
 
 class InMemoryBackend(CacheBackendBase):
@@ -104,7 +135,7 @@ class InMemoryBackend(CacheBackendBase):
         """Configure backend lazily, may be needed in advanced use cases"""
         self._cached = cachetools.TTLCache(maxsize, ttl)
 
-    async def get(self, key: str) -> Optional[RawCacheObject]:
+    async def _get_impl(self, key: str) -> Optional[RawCacheObject]:
         try:
             obj = self._cached[key]
         except KeyError:
@@ -126,9 +157,7 @@ class InMemoryBackend(CacheBackendBase):
             tag_keys.append(key)
         return True
 
-    async def invalidate_tag(self, tag: str):
-        """Delete cache entries associated with the given tag"""
-
+    async def _invalidate_tag_impl(self, tag: str):
         try:
             keys = self._tag_to_keys[tag]
         except KeyError:
@@ -138,12 +167,11 @@ class InMemoryBackend(CacheBackendBase):
                 self._cached.pop(key, None)
             del self._tag_to_keys[tag]
 
-    async def invalidate_tags(self, tags: Sequence[str]):
-        """Delete cache entries associated with the given tags"""
+    async def _invalidate_tags_impl(self, tags: Sequence[str]):
         for tag in tags:
             await self.invalidate_tag(tag)
 
-    async def reset(self):
+    async def _reset_impl(self):
         """Reset cache completely"""
         self._cached = {}
         self._tag_to_keys = {}
@@ -207,7 +235,7 @@ class RedisBackend(CacheBackendBase):
         else:
             return self._prefix
 
-    async def get(self, key: str) -> Optional[RawCacheObject]:
+    async def _get_impl(self, key: str) -> Optional[RawCacheObject]:
         redis = await self._get_redis()
         obj = await redis.get(self._prefixed(key))
         if obj is None:
@@ -236,12 +264,10 @@ class RedisBackend(CacheBackendBase):
         success, *rest = await tr.execute()
         return success
 
-    async def invalidate_tag(self, tag: str):
-        """Delete keys associated with the given tag"""
+    async def _invalidate_tag_impl(self, tag: str):
         await self.invalidate_tags([tag])
 
-    async def invalidate_tags(self, tags: Sequence[str]):
-        """Delete keys associated with the given tag"""
+    async def _invalidate_tags_impl(self, tags: Sequence[str]):
         redis = await self._get_redis()
 
         all_keys = []
@@ -260,8 +286,7 @@ class RedisBackend(CacheBackendBase):
         if len(all_keys) > 0:
             await redis.unlink(*all_keys)
 
-    async def reset(self):
-        """Delete all stored cache related keys"""
+    async def _reset_impl(self):
         await self._unlink_by_prefix(self._prefix)
 
     async def reset_version(self):
