@@ -1,18 +1,9 @@
-import pytest
-
-from fastapi_caching import CacheManager, InMemoryBackend, NoBackendConfigured
+from fastapi_caching import CacheManager, InMemoryBackend
 
 
-def test_that_manager_cant_be_used_without_backend():
-    cache_manager = CacheManager()
-
-    with pytest.raises(NoBackendConfigured):
-        cache_manager.backend  # Verified on property access
-
-
-def test_that_backend_can_be_set_lazily():
-    cache_manager = CacheManager()
+def test_that_ttl_can_be_set_lazily():
     cache_backend = InMemoryBackend()
-    cache_manager.setup(backend=cache_backend)
+    cache_manager = CacheManager(cache_backend)
+    cache_manager.setup(ttl=1337)
 
     assert cache_manager.backend is not None

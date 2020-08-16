@@ -1,5 +1,7 @@
 import pytest
 
+from fastapi_caching import InMemoryBackend, RedisBackend
+
 from . import helpers
 
 
@@ -34,3 +36,14 @@ async def test_that_cache_can_be_cleared(cache_backend):
 
     assert a_obj is None
     assert b_obj is None
+
+
+def test_that_redis_backend_can_be_configured_lazily():
+    backend = RedisBackend()
+    backend.setup(prefix="my-cool-app")
+    assert backend._get_full_prefix() == "my-cool-app"
+
+
+def test_that_inmemory_backend_can_be_configured_lazily():
+    backend = InMemoryBackend()
+    backend.setup(maxsize=2)

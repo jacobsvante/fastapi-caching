@@ -30,10 +30,8 @@ cache_backend = RedisBackend(
     port=settings.redis_port,
     prefix="redis_app",
     app_version=app_version,
-    oob_refresh=False,
 )
-cache_manager = CacheManager()
-cache_manager.setup(cache_backend)
+cache_manager = CacheManager(cache_backend)
 
 logger.info(f"App version: {app_version}")
 

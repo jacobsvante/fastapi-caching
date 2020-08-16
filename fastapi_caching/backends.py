@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 class CacheBackendBase:
+    def setup(self):
+        """Configure backend lazily, may be needed in advanced use cases"""
+        # NOTE: Default method is a no-op
+
     async def get(self, key: str) -> Optional[RawCacheObject]:
         raise NotImplementedError
 
@@ -94,6 +98,12 @@ class InMemoryBackend(CacheBackendBase):
         self._cached = cachetools.TTLCache(maxsize, ttl)
         self._tag_to_keys = {}
 
+    def setup(
+        self, *, maxsize: int = 50_000, ttl: int = constants.DEFAULT_TTL,
+    ):
+        """Configure backend lazily, may be needed in advanced use cases"""
+        self._cached = cachetools.TTLCache(maxsize, ttl)
+
     async def get(self, key: str) -> Optional[RawCacheObject]:
         try:
             obj = self._cached[key]
@@ -149,22 +159,47 @@ class RedisBackend(CacheBackendBase):
         prefix: str = "fastapi-caching",
         app_version: str = None,
         ttl: int = constants.DEFAULT_TTL,
-        oob_refresh: bool = True,
         redis: Any = None,
     ):
-        if not prefix:
-            raise RuntimeError("`prefix` is required for redis backend")
-        if prefix.endswith(":"):
-            prefix = prefix[0:-1]
-
-        self._redis = redis
         self._app_version = app_version
         self._host = host
         self._port = port
         self._password = password
         self._prefix = prefix
         self._ttl = ttl
-        self._oob_refresh = oob_refresh
+        self._redis = redis
+        self._setup_prefix(prefix)
+
+    def setup(
+        self,
+        *,
+        host: str = None,
+        port: int = None,
+        password: str = None,
+        prefix: str = None,
+        app_version: str = None,
+        ttl: int = None,
+    ):
+        """Configure backend lazily, may be needed in advanced use cases"""
+        if host is not None:
+            self._host = host
+        if port is not None:
+            self._port = port
+        if password is not None:
+            self._password = password
+        if prefix is not None:
+            self._setup_prefix(prefix)
+        if app_version is not None:
+            self._app_version = app_version
+        if ttl is not None:
+            self._ttl = ttl
+
+    def _setup_prefix(self, prefix: str):
+        if not prefix:
+            raise RuntimeError("`prefix` is required for redis backend")
+        if prefix.endswith(":"):
+            prefix = prefix[0:-1]
+        self._prefix = prefix
 
     def _get_full_prefix(self) -> str:
         if self._app_version is not None:

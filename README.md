@@ -31,4 +31,9 @@ Examples on how to use [can be found here](/examples).
 
 ### v0.1.2, 2020-08-16
 
-- Feature: Support lazy initialization of caching backend
+- Feature: Support lazy setup of cache manager
+
+### v0.2.0, 2020-08-16
+
+- Breaking change: Revert to requiring `backend` to be passed to CacheManager
+- Feature: Support lazy configuration of the caching backend
