@@ -36,5 +36,5 @@ jobs:
         black --check .
     - name: Ensure that imports are sorted correctly with isort
       run: |
-        isort --diff
-        isort --check
+        isort --diff .
+        isort --check .
