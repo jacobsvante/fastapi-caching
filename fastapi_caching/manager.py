@@ -1,5 +1,5 @@
 import logging
-from typing import Sequence
+from typing import Sequence, Optional, Dict, List
 
 from fastapi import Depends
 
@@ -45,9 +45,9 @@ class CacheManager:
     def backend(self) -> CacheBackendBase:
         return self._backend
 
-    def from_request(self, ttl: int = None) -> Depends:
+    def from_request(self, ttl: int = None, include_headers: List[str] = None, include_state: List[str] = None) -> Depends:
         d = ResponseCacheDependency(
-            self.backend, no_cache_query_param=self._no_cache_query_param, ttl=ttl,
+            self.backend, no_cache_query_param=self._no_cache_query_param, include_headers=include_headers, include_state=include_state,
         )
         return Depends(d)
 

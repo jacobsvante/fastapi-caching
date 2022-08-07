@@ -1,4 +1,5 @@
 import logging
+from typing import Optional, Dict, List
 
 from starlette.requests import Request
 
@@ -17,10 +18,14 @@ class ResponseCacheDependency:
         *,
         no_cache_query_param: str = "no-cache",
         ttl: int = None,
+        include_headers: List[str] = None,
+        include_state: List[str] = None,
     ):
         self._backend = backend
         self._no_cache_query_param = no_cache_query_param
         self._ttl = ttl
+        self._include_headers = include_headers
+        self._include_state = include_state
 
     async def __call__(self, request: Request) -> ResponseCache:
         cache = ResponseCache(
@@ -28,6 +33,8 @@ class ResponseCacheDependency:
             request,
             no_cache_query_param=self._no_cache_query_param,
             ttl=self._ttl,
+            include_headers=self._include_headers,
+            include_state=self._include_state,
         )
 
         if not self._backend.is_enabled():

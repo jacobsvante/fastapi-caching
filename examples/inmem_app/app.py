@@ -3,7 +3,8 @@ import logging
 import uuid
 from typing import List
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
+from starlette.requests import Request
 
 from fastapi_caching import CacheManager, InMemoryBackend, ResponseCache
 
@@ -18,6 +19,11 @@ logger = logging.getLogger(__name__)
 
 cache_backend = InMemoryBackend()
 cache_manager = CacheManager(cache_backend)
+
+
+def extract_user(request: Request, user: str = Header(None, alias='x-user')):
+    """Middleware to extract user from 'X-User' header (only for demo purposes) and adds it to request.state to be accessed later."""
+    request.state.user = user
 
 
 @app.on_event("startup")
@@ -50,8 +56,8 @@ async def update_product(product_id: uuid.UUID, product: Product):
     return product
 
 
-@app.get("/products", response_model=List[Product])
-async def list_products(rcache: ResponseCache = cache_manager.from_request()):
+@app.get("/products", response_model=List[Product], dependencies=[Depends(extract_user)])
+async def list_products(rcache: ResponseCache = cache_manager.from_request(include_state=['user'])):
     if rcache.exists():
         return rcache.data
 
@@ -64,7 +70,7 @@ async def list_products(rcache: ResponseCache = cache_manager.from_request()):
     return products
 
 
-@app.get("/products/{product_id}", response_model=Product)
+@app.get("/products/{product_id}", response_model=Product, dependencies=[Depends(extract_user)])
 async def get_product(
     product_id: uuid.UUID, rcache: ResponseCache = cache_manager.from_request()
 ):
