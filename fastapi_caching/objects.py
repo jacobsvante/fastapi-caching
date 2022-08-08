@@ -1,4 +1,4 @@
-from typing import Any, Sequence
+from typing import Any, Sequence, Dict, Optional, List
 
 from starlette.requests import Request
 
@@ -21,10 +21,14 @@ class ResponseCache:
         request: Request,
         no_cache_query_param: str = "no-cache",
         ttl: int = None,
+        include_headers: List[str] = None,
+        include_state: List[str] = None,
     ):
         self._backend = backend
         self._request = request
         self._no_cache_query_param = no_cache_query_param
+        self._include_headers = include_headers
+        self._include_state = include_state
         self._ttl = ttl
         self.key = self._make_key(request)
         self._obj = None
@@ -63,11 +67,19 @@ class ResponseCache:
 
     def _make_key(self, request: Request) -> str:
         parts = [request.method, request.url.path]
+
         for k in request.query_params.keys():
             if k == self._no_cache_query_param:
                 continue
             for v in request.query_params.getlist(k):
                 parts.append(f"{k}={v}")
+
+        for key in self._include_headers or []:
+            parts.append(f'{key}={request.headers.get(key)}')
+
+        for key in self._include_state or []:
+            parts.append(f'{key}={getattr(request.state, key, None)}')
+
         return "|".join(sorted(parts))
 
 

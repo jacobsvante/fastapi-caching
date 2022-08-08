@@ -1,4 +1,5 @@
 import logging
+from typing import Optional, Dict, List
 
 from starlette.requests import Request
 
@@ -16,11 +17,17 @@ class ResponseCacheDependency:
         backend: CacheBackendBase,
         *,
         no_cache_query_param: str = "no-cache",
+        no_skip_authorized: bool = False,
         ttl: int = None,
+        include_headers: List[str] = None,
+        include_state: List[str] = None,
     ):
         self._backend = backend
         self._no_cache_query_param = no_cache_query_param
+        self._no_skip_authorized = no_skip_authorized
         self._ttl = ttl
+        self._include_headers = include_headers
+        self._include_state = include_state
 
     async def __call__(self, request: Request) -> ResponseCache:
         cache = ResponseCache(
@@ -28,6 +35,8 @@ class ResponseCacheDependency:
             request,
             no_cache_query_param=self._no_cache_query_param,
             ttl=self._ttl,
+            include_headers=self._include_headers,
+            include_state=self._include_state,
         )
 
         if not self._backend.is_enabled():
@@ -35,7 +44,7 @@ class ResponseCacheDependency:
                 f"{cache.key}: Caching backend not enabled - returning no-op cache"
             )
             return NoOpResponseCache()
-        elif "authorization" in request.headers:
+        elif "authorization" in request.headers and not self._no_skip_authorized:
             logger.debug(
                 f"{cache.key}: Authorization header set - not fetching from cache"
             )
