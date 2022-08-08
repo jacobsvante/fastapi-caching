@@ -17,12 +17,14 @@ class ResponseCacheDependency:
         backend: CacheBackendBase,
         *,
         no_cache_query_param: str = "no-cache",
+        no_skip_authorized: bool = False,
         ttl: int = None,
         include_headers: List[str] = None,
         include_state: List[str] = None,
     ):
         self._backend = backend
         self._no_cache_query_param = no_cache_query_param
+        self._no_skip_authorized = no_skip_authorized
         self._ttl = ttl
         self._include_headers = include_headers
         self._include_state = include_state
@@ -42,7 +44,7 @@ class ResponseCacheDependency:
                 f"{cache.key}: Caching backend not enabled - returning no-op cache"
             )
             return NoOpResponseCache()
-        elif "authorization" in request.headers:
+        elif "authorization" in request.headers and not self._no_skip_authorized:
             logger.debug(
                 f"{cache.key}: Authorization header set - not fetching from cache"
             )

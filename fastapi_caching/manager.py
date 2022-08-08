@@ -19,10 +19,12 @@ class CacheManager:
         *,
         ttl: int = constants.DEFAULT_TTL,
         no_cache_query_param: str = "no-cache",
+        no_skip_authorized: bool = False,
     ):
         self._backend = backend
         self._ttl = ttl
         self._no_cache_query_param = no_cache_query_param
+        self._no_skip_authorized = no_skip_authorized
 
     def setup(
         self, *, ttl: int = None, no_cache_query_param: str = None,
@@ -50,19 +52,19 @@ class CacheManager:
 
         Parameters
         ----------
-        backend : CacheBackendBase
-            The backend to use for caching (in-memory or Redis)
         ttl : int
             (Optional) Time to live for cached objects in seconds
         no_cache_query_param : bool
-            (Optional) Whether to not consider query parameters for caching
+            (Optional) Query parameter that indicates to skip caching
+        no_skip_authorized : bool
+            (Optional) Whether to disable skipping requests containing an 'Authorization' header (i.e. true means to still cache them)
         include_headers : List[str]
             (Optional) Additional headers field to consider for caching (case-insensitive)
         include_state : List[str]
             (Optional) Addition properties of the Starlette Request's state object to consider for caching (see https://www.starlette.io/requests/#other-state)
         """
         d = ResponseCacheDependency(
-            self.backend, ttl=ttl, no_cache_query_param=self._no_cache_query_param, include_headers=include_headers, include_state=include_state,
+            self.backend, ttl=ttl, no_cache_query_param=self._no_cache_query_param, no_skip_authorized=self._no_skip_authorized, include_headers=include_headers, include_state=include_state,
         )
         return Depends(d)
 
