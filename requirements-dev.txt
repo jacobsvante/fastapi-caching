@@ -1,0 +1,9 @@
+aioredis==2.0.1
+cachetools==5.2.0
+fakeredis==1.9.0
+fastapi==0.79.0
+httpx==0.23.0
+pytest==7.1.2
+pytest-asyncio==0.19.0
+redis==4.3.4
+SQLAlchemy==1.4.39
